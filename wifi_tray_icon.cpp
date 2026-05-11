@@ -568,7 +568,7 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE, LPWSTR, int) {
 
     // Message-only window — never visible, never receives input focus.
     g::hWnd = CreateWindowExW(0, kWindowClassName, L"", 0,
-        0, 0, 0, 0, HWND_MESSAGE, nullptr, hInstance, nullptr);
+        0, 0, 0, 0, nullptr, nullptr, hInstance, nullptr);
     if (!g::hWnd) {
         CoUninitialize();
         CloseHandle(mutex);
