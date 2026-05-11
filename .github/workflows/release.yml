@@ -1,0 +1,37 @@
+name: Release
+on:
+  push:
+    tags: ['v*']
+
+jobs:
+  build:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup MSVC
+        uses: ilammy/msvc-dev-cmd@v1
+        with: { arch: x64 }
+
+      - name: Build
+        shell: cmd
+        run: |
+          rc /nologo /fo app.res app.rc
+          mkdir build
+          cl /nologo /EHsc /std:c++17 /W4 /DUNICODE /D_UNICODE /O2 ^
+             /Fe:build\WifiTrayIcon.exe ^
+             wifi_tray_icon.cpp app.res ^
+             /link /SUBSYSTEM:WINDOWS user32.lib shell32.lib wlanapi.lib ^
+                   iphlpapi.lib ws2_32.lib ole32.lib
+
+      - name: Build installer
+        run: |
+          & "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe" setup.iss
+
+      - name: Publish release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            build/WifiTrayIcon.exe
+            Output/WifiTrayIcon-Setup-*.exe
+          generate_release_notes: true

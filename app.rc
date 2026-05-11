@@ -1,0 +1,25 @@
+#include "resource.h"
+#include <windows.h>
+
+// Tray icons
+IDI_WIFI_0              ICON    "icons/6020.ico"
+IDI_WIFI_1              ICON    "icons/6021.ico"
+IDI_WIFI_2              ICON    "icons/6022.ico"
+IDI_WIFI_3              ICON    "icons/6023.ico"
+IDI_WIFI_4              ICON    "icons/6024.ico"
+
+IDI_WIFI_0_LIMITED      ICON    "icons/6070.ico"
+IDI_WIFI_1_LIMITED      ICON    "icons/6071.ico"
+IDI_WIFI_2_LIMITED      ICON    "icons/6072.ico"
+IDI_WIFI_3_LIMITED      ICON    "icons/6073.ico"
+IDI_WIFI_4_LIMITED      ICON    "icons/6074.ico"
+
+IDI_WIFI_OFF            ICON    "icons/6303.ico"
+
+IDI_ETHERNET            ICON    "icons/6203.ico"
+IDI_ETHERNET_LIMITED    ICON    "icons/6205.ico"
+IDI_ETHERNET_UNPLUGGED  ICON    "icons/6204.ico"
+
+IDI_DISCONNECTED        ICON    "icons/6204.ico"
+
+1 24 "app.manifest"
