@@ -22,4 +22,25 @@ IDI_ETHERNET_UNPLUGGED  ICON    "icons/6204.ico"
 
 IDI_DISCONNECTED        ICON    "icons/6204.ico"
 
+// Dark-mode tray icons
+IDI_WIFI_0_DARK              ICON    "icons/6000.ico"
+IDI_WIFI_1_DARK              ICON    "icons/6001.ico"
+IDI_WIFI_2_DARK              ICON    "icons/6002.ico"
+IDI_WIFI_3_DARK              ICON    "icons/6003.ico"
+IDI_WIFI_4_DARK              ICON    "icons/6004.ico"
+
+IDI_WIFI_0_LIMITED_DARK      ICON    "icons/6050.ico"
+IDI_WIFI_1_LIMITED_DARK      ICON    "icons/6051.ico"
+IDI_WIFI_2_LIMITED_DARK      ICON    "icons/6052.ico"
+IDI_WIFI_3_LIMITED_DARK      ICON    "icons/6053.ico"
+IDI_WIFI_4_LIMITED_DARK      ICON    "icons/6054.ico"
+
+IDI_WIFI_OFF_DARK            ICON    "icons/6301.ico"
+
+IDI_ETHERNET_DARK            ICON    "icons/6200.ico"
+IDI_ETHERNET_LIMITED_DARK    ICON    "icons/6202.ico"
+IDI_ETHERNET_UNPLUGGED_DARK  ICON    "icons/6201.ico"
+
+IDI_DISCONNECTED_DARK        ICON    "icons/6201.ico"
+
 1 24 "app.manifest"

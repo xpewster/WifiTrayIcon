@@ -1,6 +1,6 @@
 [Setup]
 AppName=WifiTrayIcon
-AppVersion=1.0.1
+AppVersion=1.0.2
 AppPublisher=xpewster
 AppPublisherURL=https://github.com/xpewster/WifiTrayIcon
 DefaultDirName={localappdata}\WifiTrayIcon
