@@ -7,7 +7,7 @@ After Windows 24H2, the network icon is no longer displayed as an individual ico
 
 - Shows ethernet status or Wi-Fi status (including signal strength)
 - Menu to open related Windows settings menus
-
+- Light or dark mode with theme auto-detection
 
 
 
