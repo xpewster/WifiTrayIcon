@@ -22,7 +22,7 @@ jobs:
              /Fe:build\WifiTrayIcon.exe ^
              wifi_tray_icon.cpp app.res ^
              /link /SUBSYSTEM:WINDOWS user32.lib shell32.lib wlanapi.lib ^
-                   iphlpapi.lib ws2_32.lib ole32.lib
+                   iphlpapi.lib ws2_32.lib ole32.lib advapi32.lib
 
       - name: Build installer
         run: |

@@ -37,6 +37,7 @@ static constexpr GUID kTrayIconGuid =
 
 enum class InterfaceType { None, Ethernet, WiFi };
 enum class ConnectivityState { Disconnected, Limited, Internet };
+enum class ThemePref { Auto = 0, Light = 1, Dark = 2 };
 
 struct NetworkState {
     InterfaceType     type         = InterfaceType::None;
@@ -74,6 +75,7 @@ namespace g {
     DWORD                    nlmCookie        = 0;
 
     NetworkState             currentState;
+    ThemePref                themePref         = ThemePref::Auto;
 }
 
 // =============================================================================
@@ -249,6 +251,64 @@ static NetworkState ComputeNetworkState() {
 }
 
 // =============================================================================
+// Theme detection
+// =============================================================================
+
+// Each dark icon resource ID equals its light counterpart plus this offset.
+constexpr int kDarkIconOffset = 1000;
+
+static constexpr wchar_t kSettingsKey[] = L"Software\\NetworkTray";
+
+// The taskbar follows "SystemUsesLightTheme" Returns true when the taskbar is light. Defaults
+// to light if the value is missing or unreadable.
+static bool SystemUsesLightTheme() {
+    DWORD value = 1;
+    DWORD size  = sizeof(value);
+    if (RegGetValueW(HKEY_CURRENT_USER,
+            L"Software\\Microsoft\\Windows\\CurrentVersion\\Themes\\Personalize",
+            L"SystemUsesLightTheme", RRF_RT_REG_DWORD,
+            nullptr, &value, &size) != ERROR_SUCCESS) {
+        return true;
+    }
+    return value != 0;
+}
+
+static bool UseDarkIcons() {
+    switch (g::themePref) {
+        case ThemePref::Light: return true;
+        case ThemePref::Dark:  return false;
+        case ThemePref::Auto:
+        default:               return !SystemUsesLightTheme();
+    }
+}
+
+// Resolves a (light) icon resource ID to the variant matching the active theme.
+static int ThemedIcon(int lightId) {
+    return UseDarkIcons() ? lightId + kDarkIconOffset : lightId;
+}
+
+static void LoadThemePref() {
+    DWORD value = 0;
+    DWORD size  = sizeof(value);
+    if (RegGetValueW(HKEY_CURRENT_USER, kSettingsKey, L"ThemePref",
+            RRF_RT_REG_DWORD, nullptr, &value, &size) == ERROR_SUCCESS
+        && value <= static_cast<DWORD>(ThemePref::Dark)) {
+        g::themePref = static_cast<ThemePref>(value);
+    }
+}
+
+static void SaveThemePref() {
+    HKEY key = nullptr;
+    if (RegCreateKeyExW(HKEY_CURRENT_USER, kSettingsKey, 0, nullptr, 0,
+            KEY_SET_VALUE, nullptr, &key, nullptr) == ERROR_SUCCESS) {
+        DWORD value = static_cast<DWORD>(g::themePref);
+        RegSetValueExW(key, L"ThemePref", 0, REG_DWORD,
+            reinterpret_cast<const BYTE*>(&value), sizeof(value));
+        RegCloseKey(key);
+    }
+}
+
+// =============================================================================
 // Icon + tooltip selection
 // =============================================================================
 
@@ -319,7 +379,7 @@ static void FillNotifyIconData(NOTIFYICONDATAW& nid) {
 static void AddTrayIcon() {
     NOTIFYICONDATAW nid;
     FillNotifyIconData(nid);
-    nid.hIcon = LoadIconW(g::hInstance, MAKEINTRESOURCEW(IDI_DISCONNECTED));
+    nid.hIcon = LoadIconW(g::hInstance, MAKEINTRESOURCEW(ThemedIcon(IDI_DISCONNECTED)));
     wcscpy_s(nid.szTip, L"Network");
     Shell_NotifyIconW(NIM_ADD, &nid);
 
@@ -328,10 +388,10 @@ static void AddTrayIcon() {
 }
 
 static void UpdateTrayIcon(const NetworkState& state) {
-    int iconId = IconResourceForState(state);
+    int iconId = ThemedIcon(IconResourceForState(state));
     HICON hIcon = static_cast<HICON>(LoadImageW(g::hInstance, MAKEINTRESOURCEW(iconId),
         IMAGE_ICON, 0, 0, LR_DEFAULTSIZE | LR_SHARED));
-    if (!hIcon) hIcon = LoadIconW(g::hInstance, MAKEINTRESOURCEW(IDI_DISCONNECTED));
+    if (!hIcon) hIcon = LoadIconW(g::hInstance, MAKEINTRESOURCEW(ThemedIcon(IDI_DISCONNECTED)));
 
     NOTIFYICONDATAW nid;
     FillNotifyIconData(nid);
@@ -388,6 +448,19 @@ static void ShowContextMenu(POINT pt) {
     AppendMenuW(menu, MF_STRING, IDM_OPEN_NCPA,             L"Network &connections");
     AppendMenuW(menu, MF_SEPARATOR, 0, nullptr);
     AppendMenuW(menu, MF_STRING, IDM_REFRESH,               L"&Refresh");
+
+    HMENU themeMenu = CreatePopupMenu();
+    if (themeMenu) {
+        AppendMenuW(themeMenu, MF_STRING, IDM_THEME_AUTO,  L"&Auto");
+        AppendMenuW(themeMenu, MF_STRING, IDM_THEME_LIGHT, L"&Light");
+        AppendMenuW(themeMenu, MF_STRING, IDM_THEME_DARK,  L"&Dark");
+        // ThemePref (Auto=0, Light=1, Dark=2) maps onto the contiguous IDM IDs.
+        CheckMenuRadioItem(themeMenu, IDM_THEME_AUTO, IDM_THEME_DARK,
+            IDM_THEME_AUTO + static_cast<UINT>(g::themePref), MF_BYCOMMAND);
+        AppendMenuW(menu, MF_POPUP,
+            reinterpret_cast<UINT_PTR>(themeMenu), L"&Icon theme");
+    }
+
     AppendMenuW(menu, MF_SEPARATOR, 0, nullptr);
     AppendMenuW(menu, MF_STRING, IDM_EXIT,                  L"E&xit");
 
@@ -413,6 +486,16 @@ static LRESULT CALLBACK WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lPara
     switch (msg) {
     case WM_RECOMPUTE:
         Recompute();
+        return 0;
+
+    case WM_SETTINGCHANGE:
+        // Broadcast when the user toggles Windows light/dark mode. Only the
+        // taskbar theme matters, and only when we're auto-detecting.
+        if (g::themePref == ThemePref::Auto && lParam
+            && CompareStringOrdinal(reinterpret_cast<LPCWSTR>(lParam), -1,
+                   L"ImmersiveColorSet", -1, TRUE) == CSTR_EQUAL) {
+            UpdateTrayIcon(g::currentState);
+        }
         return 0;
 
     case WM_TRAY_CALLBACK: {
@@ -449,6 +532,13 @@ static LRESULT CALLBACK WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lPara
             break;
         case IDM_REFRESH:
             Recompute();
+            break;
+        case IDM_THEME_AUTO:
+        case IDM_THEME_LIGHT:
+        case IDM_THEME_DARK:
+            g::themePref = static_cast<ThemePref>(LOWORD(wParam) - IDM_THEME_AUTO);
+            SaveThemePref();
+            UpdateTrayIcon(g::currentState);  // apply immediately; state unchanged
             break;
         case IDM_EXIT:
             RemoveTrayIcon();
@@ -578,6 +668,8 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE, LPWSTR, int) {
     InitNlm();
     InitWlan();
     InitIpChange();
+
+    LoadThemePref();
 
     AddTrayIcon();
     Recompute();  // Seed initial state.
